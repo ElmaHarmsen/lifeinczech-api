@@ -1,7 +1,7 @@
 /**** External libraries ****/
 const express = require('express'); // The express.js library for implementing the API
 const bodyParser = require('body-parser'); // Parsing the json request to javascript
-const morgan = require('morgan'); // For logging everything that happens in the console, good for errors
+// const morgan = require('morgan'); // For logging everything that happens in the console, good for errors
 const cors = require('cors'); //Prevends app from getting C.O.R.S (cross origin recourse sharing) errors
 const mongoose = require("mongoose"); //Database
 
@@ -11,7 +11,7 @@ const port = process.env.PORT || 8081; // Pick port 8080 if the PORT env variabl
 const app = express(); // Get the express app object. An express instance
 
 app.use(bodyParser.json()); // Add middleware that parses JSON from the request body.
-app.use(morgan('combined')); // Add middleware that logs all http requests to the console.
+// app.use(morgan('combined')); // Add middleware that logs all http requests to the console.
 app.use(cors()); // Avoid CORS errors. https://en.wikipedia.org/wiki/Cross-origin_resource_sharing
 
 (async (_) => {
@@ -29,40 +29,26 @@ app.use(cors()); // Avoid CORS errors. https://en.wikipedia.org/wiki/Cross-origi
 })();
 //() immediately invoked expression - runs instantly when JS finds it
 
-// const hotlistSchema = new mongoose.Schema ({
-//   //id: Number,
-//   word: String,
-//   translation: String,
-//   pronunciation: String,
-//   hotlist: Boolean //Value: 0
-// }, {collection: "HotlistWords"});
-// const hotlistWord = mongoose.model("hotlistWord", hotlistSchema)
-
 const dictionarySchema = new mongoose.Schema ({
   //id: Number,
   word: String,
   translation: String,
   pronunciation: String,
-  hotlist: Boolean, //Value: 0
-  dictionairyCZ: Boolean //Value: 1
-  //maybe some cool filtering adding
-}, {collection: "DictionaryWordsCZ"});
-const dictionaryWordCZ = mongoose.model("dictionaryWordCZ", dictionarySchema) 
+  hotlist: Boolean,
+  dictionarycz: Boolean,
+  category: String 
+}, {collection: "DictionaryCZ"});
+const dictionarycz = mongoose.model("dictionaryCZ", dictionarySchema) 
 
 /**** Routes ****/
-// app.get('/api/hotlist', async (request, response) => {
-//   const hotlist_filtered = await hotlistWord.find({hotlist: 0});
-//   response.json(hotlist_filtered);
-// });
-
-app.get('/api/dictionaryCZ', async (request, response) => {
-  response.json(await dictionaryWordCZ.find({}));
+app.get('/api/dictionarycz', async (request, response) => {
+  response.json(await dictionarycz.find({}));
 });
 
-app.post('/api/hotlist', async(request, response) => {
-  const hotlistIds = request.body;
-  const hotlistWords = await (await hotlistWord.find().where('_id')).includes(hotlistIds).exec();
-  response.json(hotlistWords);
+app.post('/api/dictionarycz', async(request, response) => {
+  const dictionaryczIds = request.body;
+  const dictionaryczWords = await (await dictionarycz.find().where('_id')).includes(dictionaryczIds).exec();
+  response.json(dictionaryczWords);
 });
 
 /**** Start! ****/
