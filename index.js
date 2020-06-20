@@ -33,9 +33,9 @@ const dictionarySchema = new mongoose.Schema ({
   //id: Number,
   word: String,
   translation: String,
-  pronunciation: String,
+  nederlands: String,
   hotlist: Boolean,
-  dictionarycz: Boolean,
+  dictionary: Boolean,
   category: String 
 }, {collection: "DictionaryCZ"});
 const dictionarycz = mongoose.model("dictionaryCZ", dictionarySchema) 
@@ -46,9 +46,13 @@ app.get('/api/dictionarycz', async (request, response) => {
 });
 
 app.post('/api/dictionarycz', async(request, response) => {
-  const dictionaryczIds = request.body;
-  const dictionaryczWords = await (await dictionarycz.find().where('_id')).includes(dictionaryczIds).exec();
-  response.json(dictionaryczWords);
+  const {hotlist} = request.body; //We extract the hotlist value from the body
+  const dictionaryczNewWord = new dictionarycz ({...request.body}); //Creates a new instance of the model, and it destructures the request and takes the data from it.
+  await dictionaryczNewWord.save(); //save is a mongoose thing?
+  response.json({
+    message: "Word added successfully!", 
+    place: hotlist ? "/" : "/dictionary" //If else statement with redirecting using router paths
+  });
 });
 
 /**** Start! ****/
