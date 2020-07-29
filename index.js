@@ -45,7 +45,7 @@ app.get('/api/dictionarycz', async (request, response) => {
   response.json(await dictionarycz.find({}));
 });
 
-app.post('/api/dictionarycz', async(request, response) => {
+app.post('/api/dictionarycz', async (request, response) => {
   const {hotlist} = request.body; //We extract the hotlist value from the body
   const dictionaryczNewWord = new dictionarycz ({...request.body}); //Creates a new instance of the model, and it destructures the request and takes the data from it.
   await dictionaryczNewWord.save(); //save is a mongoose thing?
@@ -53,6 +53,16 @@ app.post('/api/dictionarycz', async(request, response) => {
     message: "Word added successfully!", 
     place: hotlist ? "/" : "/dictionary" //If else statement with redirecting using router paths
   });
+});
+
+app.delete('/api/dictionarycz', async (request, response) => {
+  const result = await dictionarycz.deleteOne({_id: request.body.id});
+  if (!result.deletedCount) {
+    response.status(404).send("SYSTEM FAIL!");
+  }
+  else {
+    response.status(200).send("YOU MANAGED!");
+  }
 });
 
 /**** Start! ****/
