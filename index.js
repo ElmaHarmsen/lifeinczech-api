@@ -56,13 +56,28 @@ app.post('/api/dictionarycz', async (request, response) => {
 });
 
 app.delete('/api/dictionarycz', async (request, response) => {
-  const result = await dictionarycz.deleteOne({_id: request.body.id});
+  const result = await dictionarycz.deleteOne({_id: request.body.id}); //dictionarycz is the model.
   if (!result.deletedCount) {
     response.status(404).send("SYSTEM FAIL!");
   }
   else {
     response.status(200).send("YOU MANAGED!");
   }
+});
+
+app.patch('/api/dictionarycz', async (request, response) => {
+  console.log("running")
+  const newPlace = {hotlist: false, dictionary: false}; //Object
+  if (request.body.newPlace === "Hotlist") {
+    newPlace.hotlist = true;
+    response.status(200).send("SENT TO HOTLIST!");
+  }
+  else {
+    newPlace.dictionary = true;
+    response.status(200).send("SENT TO DICTIONARY!");
+  }
+  const result = await dictionarycz.findOneAndUpdate({_id: request.body.id}, newPlace); //newPlace is also an object.
+  console.log(result);
 });
 
 /**** Start! ****/
