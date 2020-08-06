@@ -4,6 +4,7 @@ const bodyParser = require('body-parser'); // Parsing the json request to javasc
 // const morgan = require('morgan'); // For logging everything that happens in the console, good for errors
 const cors = require('cors'); //Prevends app from getting C.O.R.S (cross origin recourse sharing) errors
 const mongoose = require("mongoose"); //Database
+const { request, response } = require('express');
 
 /**** Configuration ****/
 const appName = "Life in Czech Api"; //
@@ -66,7 +67,6 @@ app.delete('/api/dictionarycz', async (request, response) => {
 });
 
 app.patch('/api/dictionarycz', async (request, response) => {
-  console.log("running")
   const newPlace = {hotlist: false, dictionary: false}; //Object
   let message = "";
   if (request.body.newPlace === "Hotlist") {
@@ -78,13 +78,29 @@ app.patch('/api/dictionarycz', async (request, response) => {
     message = "Sent to Dictionary!";
   }
   const result = await dictionarycz.findOneAndUpdate({_id: request.body.id}, newPlace); //newPlace is also an object.
-  console.log(result);
   if (result) {
     response.status(200).send(message);
   }
   else {
     response.status(404).send("System Fail!")
   }
+});
+
+app.put('/api/dictionarycz', async (request, response) => {
+  const editedWord = request.body.editedWord; //We get the data from the request into this data variable. Object
+  let message = "";
+  if (!editedWord) { //If editedWord is false value. If there is nothing in the body, this will trigger.
+    message = "Stop Breaking My System!";
+    response.status(401).send(message); //Unauthorised. Request without a body, for example empty input field => frontend.
+  } //If there is a body, this if statement will not even trigger.
+  const result = await dictionarycz.findOneAndReplace({_id: request.body.id}, editedWord); 
+  //Here it checks if the requested id is available, and if it does exist it replaces it.
+  if (!result) {
+    message = "System Fail!";
+    response.status(404).send(message);
+  }
+  message = "Word Edited and Saved!";
+  response.status(200).send(message);
 });
 
 /**** Start! ****/
