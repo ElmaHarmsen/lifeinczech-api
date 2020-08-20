@@ -103,6 +103,23 @@ app.put('/api/dictionarycz', async (request, response) => {
   response.status(200).send(message);
 });
 
+app.get('/api/search', async (request, response) => {
+  let message = "";
+  const searchQuery = request.query.word; //We save the value of the search in the const.
+  if (!searchQuery) { //Similar to put request above here.
+    message = "Stop Breaking My System!";
+    response.status(401).send(message);
+  }
+  const matchingRule = new RegExp(searchQuery, "i"); //To make it case insensitive.
+  const result = await dictionarycz.find().or([{ word: { $regex: matchingRule } }, { translation: { $regex: matchingRule } }, { nederlands: { $regex: matchingRule } }]).exec(); //It either checks for the czech one, the english one or the dutch one.
+  if (!result || !result.length) {
+    message = "Nothing found!";
+    response.status(404).send(message);
+  }
+  message = `${result.length} word(s) found!`;
+  response.json({result, message});
+});
+
 /**** Start! ****/
 app.listen(port, () => console.log(`${appName} API running on port ${port}!`));
 
