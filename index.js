@@ -1,10 +1,14 @@
 /**** External libraries ****/
+require("dotenv").config();
 const express = require('express'); // The express.js library for implementing the API
 const bodyParser = require('body-parser'); // Parsing the json request to javascript
 // const morgan = require('morgan'); // For logging everything that happens in the console, good for errors
 const cors = require('cors'); //Prevends app from getting C.O.R.S (cross origin recourse sharing) errors
 const mongoose = require("mongoose"); //Database
-const { request, response } = require('express');
+
+const bcrypt = require("bcryptjs"); //Makes hash out of passwords
+const jwt = require("jsonwebtoken"); //Generates json web tokens
+const validate = require("express-jwt"); //Validates if jwt is still valid
 
 /**** Configuration ****/
 const appName = "Life in Czech Api"; //
@@ -31,17 +35,100 @@ app.use(cors()); // Avoid CORS errors. https://en.wikipedia.org/wiki/Cross-origi
 //() immediately invoked expression - runs instantly when JS finds it
 
 const dictionarySchema = new mongoose.Schema ({
-  //id: Number,
   word: String,
   translation: String,
   nederlands: String,
   hotlist: Boolean,
   dictionary: Boolean,
   category: String 
-}, {collection: "DictionaryCZ"});
-const dictionarycz = mongoose.model("dictionaryCZ", dictionarySchema) 
+}, { collection: "DictionaryCZ" });
+const dictionarycz = mongoose.model("dictionaryCZ", dictionarySchema);
+
+const dictionaryUser = new mongoose.Schema ({
+  username: String,
+  fullName: String,
+  password: String
+}, { collection: "DictionaryUsers" });
+const user = mongoose.model("dictionaryUser", dictionaryUser);
 
 /**** Routes ****/
+app.post("/api/register", async(request, response) => {
+  const { username, fullName, password } = request.body; //Get 3 consts from the body
+
+  if (!username || !fullName || !password) {
+    response.status(401).send("Username, full name and password are required to continue.");
+    return;
+  }
+
+  const userCheck = await user.find({
+    username: username
+  }).exec();
+  if (userCheck.length) {
+    response.status(401).send("Username already exists, try another one please.");
+    return;
+  }
+
+  bcrypt.genSalt((error, salt) => {
+    bcrypt.hash(password, salt, async (error, hashedPassword) => {
+      const newUser = new user ({
+        username: username,
+        fullName: fullName,
+        password: hashedPassword
+      });
+      await newUser.save();
+
+      const token = jwt.sign({ username, fullName }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+      response.status(200).json({
+        token: token,
+        username: username,
+        fullName: fullName,
+        message: `Hii ${username}, welcome to the Ducky Dictionary!`
+      });
+    });
+  });
+  //The salt thing adds once a random set of characters to the password
+});
+
+app.get("/api/session",
+  validate({
+    secret: process.env.JWT_SECRET,
+    algorithms: ["HS256"]
+  }),
+  (request, response) => {
+    console.log(request.user);
+    response.status(200).send("Request went through.");
+  }
+)
+
+app.post("/api/login", async(request, response) => {
+  const {username, password} = request.body;
+  if (!username || !password) {
+    response.status(401).send("Please fill in the credentials.");
+    return;
+  }
+  const userCheck = await user.find({
+    username: username
+  }).exec();
+  if (!userCheck.length) {
+    response.status(404).send("User not found.");
+    return;
+  }
+  bcrypt.compare(password, userCheck[0].password, (error, isMatching) => {
+    if (!isMatching) {
+      response.status(401).send("Password is incorrect, please try again.");
+      return;
+    }
+    const token = jwt.sign({ username, fullName: userCheck[0].fullName }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    response.status(200).json({
+      token: token,
+      username: username,
+      fullName: userCheck[0].fullName,
+      message: "You succesfully logged in!",
+    });
+  });
+});
+
 app.get('/api/dictionarycz', async (request, response) => {
   response.json(await dictionarycz.find({}));
 });
