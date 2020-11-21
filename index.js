@@ -19,7 +19,7 @@ const app = express(); // Get the express app object. An express instance
 app.use(bodyParser.json()); // Add middleware that parses JSON from the request body.
 // app.use(morgan('combined')); // Add middleware that logs all http requests to the console.
 app.use(cors({
-  origin: "http://localhost:8080",
+  origin: "https://duckydictionary.netlify.app",
   credentials: true
 })); // Avoid CORS errors. https://en.wikipedia.org/wiki/Cross-origin_resource_sharing
 app.use(cookieParser());
