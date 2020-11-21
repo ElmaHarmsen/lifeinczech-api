@@ -5,6 +5,7 @@ const bodyParser = require('body-parser'); // Parsing the json request to javasc
 // const morgan = require('morgan'); // For logging everything that happens in the console, good for errors
 const cors = require('cors'); //Prevends app from getting C.O.R.S (cross origin recourse sharing) errors
 const mongoose = require("mongoose"); //Database
+const cookieParser = require("cookie-parser");
 
 const bcrypt = require("bcryptjs"); //Makes hash out of passwords
 const jwt = require("jsonwebtoken"); //Generates json web tokens
@@ -17,7 +18,11 @@ const app = express(); // Get the express app object. An express instance
 
 app.use(bodyParser.json()); // Add middleware that parses JSON from the request body.
 // app.use(morgan('combined')); // Add middleware that logs all http requests to the console.
-app.use(cors()); // Avoid CORS errors. https://en.wikipedia.org/wiki/Cross-origin_resource_sharing
+app.use(cors({
+  origin: "http://localhost:8080",
+  credentials: true
+})); // Avoid CORS errors. https://en.wikipedia.org/wiki/Cross-origin_resource_sharing
+app.use(cookieParser());
 
 (async (_) => {
   try {
@@ -51,6 +56,17 @@ const dictionaryUser = new mongoose.Schema ({
 }, { collection: "DictionaryUsers" });
 const user = mongoose.model("dictionaryUser", dictionaryUser);
 
+/**** When a new user goes through the resigration, a new mongoose modal (within DictionaryCZ?) is created! ****/
+
+/* 
+const userSchema = new Schema({ name: String })
+const User = mongoose.model('User', userSchema);
+
+User.createCollection().then(function(collection) {
+  console.log('Collection is created!');
+}); 
+*/
+
 /**** Routes ****/
 app.post("/api/register", async(request, response) => {
   const { username, fullName, password } = request.body; //Get 3 consts from the body
@@ -79,10 +95,15 @@ app.post("/api/register", async(request, response) => {
 
       const token = jwt.sign({ username, fullName }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
-      response.status(200).json({
-        token: token,
-        username: username,
-        fullName: fullName,
+      response.status(200)
+      .cookie(
+        "token", "Bearer " + token, { expires: new Date(Date.now() + 3600000), httpOnly: true, secure: true }
+      )
+      .json({
+        userData: {
+          username: username,
+          fullName: fullName
+        },
         message: `Hii ${username}, welcome to the Ducky Dictionary!`
       });
     });
@@ -93,11 +114,23 @@ app.post("/api/register", async(request, response) => {
 app.get("/api/session",
   validate({
     secret: process.env.JWT_SECRET,
-    algorithms: ["HS256"]
+    algorithms: ["HS256"],
+    getToken: function fromHeaderOrQuerystring (req) {
+      if (req.cookies && req.cookies.token) {
+        return req.cookies.token.split(" ")[1];
+      }
+      return null;
+    }
   }),
   (request, response) => {
-    console.log(request.user);
-    response.status(200).send("Request went through.");
+    response.status(200)
+    .json({
+      userData: {
+        username: request.user.username,
+        fullName: request.user.fullName
+      },
+      message: "Session is valid."
+    });
   }
 )
 
@@ -120,10 +153,15 @@ app.post("/api/login", async(request, response) => {
       return;
     }
     const token = jwt.sign({ username, fullName: userCheck[0].fullName }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    response.status(200).json({
-      token: token,
-      username: username,
-      fullName: userCheck[0].fullName,
+    response.status(200)
+    .cookie(
+      "token", "Bearer " + token, { expires: new Date(Date.now() + 3600000), httpOnly: true, secure: true }
+    )
+    .json({
+      userData: {
+        username: username,
+        fullName: userCheck[0].fullName
+      },
       message: "You succesfully logged in!",
     });
   });
